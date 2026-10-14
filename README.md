@@ -59,6 +59,9 @@ Setelah jalan:
 
 - Web: http://localhost:5173
 - API: http://localhost:3000/api (cek kesehatan: http://localhost:3000/api/health)
+- Swagger (dokumentasi dan uji endpoint): http://localhost:3000/api/docs. Hanya aktif bila `NODE_ENV` bukan
+  `production`. Untuk endpoint yang butuh login, jalankan dulu `POST /api/auth/login` (grup **auth**) dengan akun demo;
+  cookie sesi otomatis ikut di request berikutnya. Spesifikasi OpenAPI mentah: http://localhost:3000/api/docs-json.
 
 Web dev server meneruskan semua permintaan `/api` ke API (proxy Vite), jadi cookie login berjalan di satu origin.
 
