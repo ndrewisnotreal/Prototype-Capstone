@@ -1,0 +1,82 @@
+# Produksi / demo di satu server (T-7.4, ADR-0008):
+#   cp .env.production.example .env.production   # lalu isi
+#   docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+# Data contoh (hanya server demo):
+#   docker compose -f docker-compose.prod.yml --env-file .env.production run --rm migrate npm run db:seed
+name: ssb-prod # terpisah dari docker-compose.yml (dev), volume tidak bentrok
+
+x-database-url: &database-url postgresql://ssb:${POSTGRES_PASSWORD:?isi POSTGRES_PASSWORD}@db:5432/ssb?schema=public
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ssb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?isi POSTGRES_PASSWORD}
+      POSTGRES_DB: ssb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ssb -d ssb']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Menjalankan migrasi lalu berhenti; API baru start setelah ini sukses
+  migrate:
+    build: { context: ., target: build }
+    working_dir: /app/apps/api
+    command: ['npx', 'prisma', 'migrate', 'deploy']
+    # user node + volume unggahan: seed (opsional) menyalin foto contoh ke folder yang sama dengan API
+    user: node
+    environment:
+      DATABASE_URL: *database-url
+      UPLOAD_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db: { condition: service_healthy }
+    restart: 'no'
+
+  api:
+    build: { context: ., target: api }
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: *database-url
+      JWT_SECRET: ${JWT_SECRET:?isi JWT_SECRET}
+      APP_URL: ${APP_URL:?isi APP_URL}
+      TRUST_PROXY: 1
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-Suwandi SecondBranded <no-reply@localhost>}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: { context: ., target: web }
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - api
+
+volumes:
+  db-data:
+  uploads: # foto produk dan bukti transfer (privat): ikutkan dalam backup
+  caddy-data: # sertifikat HTTPS
+  caddy-config:

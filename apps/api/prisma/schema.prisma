@@ -1,0 +1,268 @@
+// Sumber: docs/database.md. Ubah lewat migrasi, lalu perbarui dokumen itu di commit yang sama.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  STAFF
+  OWNER
+}
+
+enum ProductStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  INACTIVE
+}
+
+enum Condition {
+  LIKE_NEW
+  VERY_GOOD
+  GOOD
+  FAIR
+}
+
+enum OrderStatus {
+  AWAITING_PAYMENT
+  AWAITING_VERIFICATION
+  PROCESSING
+  READY_FOR_PICKUP
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING_VERIFICATION
+  VERIFIED
+  REJECTED
+}
+
+enum ProofStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum Fulfillment {
+  PICKUP
+  SHIPPING
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  name         String
+  email        String     @unique
+  phone        String?
+  passwordHash String
+  role         Role       @default(CUSTOMER)
+  isActive     Boolean    @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  addresses    Address[]
+  cartItems    CartItem[]
+  orders       Order[]    @relation("CustomerOrders")
+}
+
+model Address {
+  id         Int     @id @default(autoincrement())
+  userId     Int
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label      String // "Rumah", "Kos"
+  line       String
+  city       String
+  postalCode String
+  isPrimary  Boolean @default(false)
+}
+
+model Brand {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique // Sneakers, Running, Basket, Casual [KONFIRMASI]
+  slug     String    @unique
+  products Product[]
+}
+
+model Product {
+  id                Int            @id @default(autoincrement())
+  code              String         @unique // SSB-0143
+  brandId           Int
+  brand             Brand          @relation(fields: [brandId], references: [id])
+  categoryId        Int
+  category          Category       @relation(fields: [categoryId], references: [id])
+  model             String // "Air Jordan 1 High Green"
+  sizeEu            Decimal        @db.Decimal(3, 1)
+  sizeUk            Decimal?       @db.Decimal(3, 1)
+  sizeUs            Decimal?       @db.Decimal(3, 1)
+  insoleCm          Decimal?       @db.Decimal(4, 1)
+  condition         Condition
+  defects           String? // satu minus per baris
+  hasBox            Boolean        @default(false)
+  hasOriginalInsole Boolean        @default(false)
+  hasOriginalLaces  Boolean        @default(false)
+  price             Int
+  description       String?
+  status            ProductStatus  @default(AVAILABLE)
+  createdById       Int?
+  soldAt            DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  photos            ProductPhoto[]
+  orderItems        OrderItem[]
+  cartItems         CartItem[]
+
+  @@index([status, createdAt])
+  @@index([brandId, sizeEu])
+}
+
+model ProductPhoto {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  sortOrder Int     @default(0)
+  isPrimary Boolean @default(false)
+}
+
+model CartItem {
+  userId    Int
+  productId Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, productId])
+}
+
+model Order {
+  id              Int                  @id @default(autoincrement())
+  code            String               @unique // INV-20261011-0007
+  customerId      Int
+  customer        User                 @relation("CustomerOrders", fields: [customerId], references: [id])
+  status          OrderStatus          @default(AWAITING_PAYMENT)
+  paymentStatus   PaymentStatus        @default(UNPAID)
+  fulfillment     Fulfillment
+  recipientName   String
+  recipientPhone  String
+  shippingAddress String? // wajib bila SHIPPING
+  totalAmount     Int
+  expiresAt       DateTime
+  courier         String?
+  trackingNumber  String?
+  cancelReason    String?
+  cancelledById   Int?
+  processedById   Int?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  items           OrderItem[]
+  proofs          PaymentProof[]
+  history         OrderStatusHistory[]
+
+  @@index([status, expiresAt])
+  @@index([customerId, createdAt])
+}
+
+model OrderItem {
+  id        Int       @id @default(autoincrement())
+  orderId   Int
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product   @relation(fields: [productId], references: [id])
+  price     Int // harga saat checkout
+  // snapshot agar invoice tetap benar walau produk diedit
+  brandName String
+  model     String
+  sizeEu    Decimal   @db.Decimal(3, 1)
+  condition Condition
+}
+
+model PaymentProof {
+  id           Int         @id @default(autoincrement())
+  orderId      Int
+  order        Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fileKey      String // path privat di storage
+  senderName   String
+  senderBank   String
+  amount       Int
+  status       ProofStatus @default(PENDING)
+  rejectReason String?
+  reviewedById Int?
+  reviewedAt   DateTime?
+  createdAt    DateTime    @default(now())
+}
+
+model OrderStatusHistory {
+  id         Int          @id @default(autoincrement())
+  orderId    Int
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  note       String?
+  actorId    Int? // null = sistem (kedaluwarsa otomatis)
+  createdAt  DateTime     @default(now())
+}
+
+model ActivityLog {
+  id         Int      @id @default(autoincrement())
+  actorId    Int?
+  action     String // PRODUCT_CREATED, PRICE_CHANGED, PAYMENT_ACCEPTED, PAYMENT_REJECTED, ORDER_STATUS_CHANGED, SETTINGS_UPDATED ...
+  entityType String // Product, Order, StoreSetting, User
+  entityId   String
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+}
+
+model StoreSetting {
+  id                   Int           @id @default(1) // satu baris
+  whatsapp             String
+  instagram            String?
+  tiktok               String?
+  address              String
+  openingHours         Json // [{ "days": "Senin-Sabtu", "hours": "10.00-21.00" }]
+  paymentDeadlineHours Int           @default(24)
+  fulfillmentMethods   Fulfillment[] @default([PICKUP, SHIPPING])
+  updatedAt            DateTime      @updatedAt
+}
+
+model BankAccount {
+  id            Int     @id @default(autoincrement())
+  bankName      String
+  accountNumber String
+  accountName   String
+  isActive      Boolean @default(true)
+  sortOrder     Int     @default(0)
+}
+
+model Faq {
+  id        Int     @id @default(autoincrement())
+  question  String
+  answer    String
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+}
+
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+}

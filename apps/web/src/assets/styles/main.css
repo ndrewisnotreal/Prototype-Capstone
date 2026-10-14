@@ -1,0 +1,108 @@
+/*
+ * Token design system Suwandi SecondBranded untuk Tailwind CSS v4.
+ * Salin isi file ini ke apps/web/src/assets/styles/main.css (T-0.3).
+ * Kelas yang dihasilkan: bg-brand-600, text-accent-700, rounded-card, rounded-control, shadow-card, shadow-pop, font-sans.
+ * tailwindcss-primeui menambah utilitas yang membaca token PrimeVue (bg-primary, text-muted-color, bg-emphasis, ...).
+ * Warna PrimeVue sendiri diatur di primevue-preset.ts. Hex di dua file ini harus sama.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* Urutan layer: PrimeVue di bawah utilities supaya kelas Tailwind menang (ADR-0004). Harus sebelum @import tailwindcss. */
+@layer theme, base, primevue, components, utilities;
+@import 'tailwindcss';
+@import 'tailwindcss-primeui';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand hijau */
+  --color-brand-50: #eef4f1;
+  --color-brand-100: #d7e5de;
+  --color-brand-200: #b0cbbe;
+  --color-brand-300: #c3d6cc;
+  --color-brand-500: #4f7a69;
+  --color-brand-600: #3b5d50; /* tombol primer, logo */
+  --color-brand-700: #2f4b41; /* hover, tautan, banner */
+  --color-brand-900: #18271f; /* sidebar panel */
+
+  /* Aksen kuning */
+  --color-accent-100: #fdf1cf;
+  --color-accent-400: #f9bf29; /* Baru masuk, CTA kanal resmi */
+  --color-accent-500: #e0a50f; /* hover aksen */
+  --color-accent-700: #6b4a00; /* teks di atas accent-100 */
+
+  /* Netral: dikunci ke nilai hex desain (gray bawaan v4 sedikit berbeda) */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6; /* latar halaman */
+  --color-gray-200: #e5e7eb; /* border kartu */
+  --color-gray-300: #d1d5db; /* border input */
+  --color-gray-500: #6b7280; /* teks sekunder, HANYA di atas putih */
+  --color-gray-600: #4b5563; /* teks sekunder di latar abu */
+  --color-gray-700: #374151;
+  --color-gray-900: #111827; /* teks utama */
+
+  /* Status (selalu dipasangkan ikon + label) */
+  --color-success-bg: #dcfce7;
+  --color-success-fg: #166534;
+  --color-warning-bg: #fef3c7;
+  --color-warning-fg: #92400e;
+  --color-danger-bg: #fee2e2;
+  --color-danger-fg: #991b1b;
+  --color-danger-600: #b91c1c; /* tombol bahaya */
+  --color-neutral-bg: #e5e7eb;
+  --color-neutral-fg: #374151;
+  /* garis tepi badge (DS-Components) */
+  --color-success-line: #bbf7d0;
+  --color-warning-line: #fde68a;
+  --color-danger-line: #fecaca;
+  --color-photo: #e6eeea; /* latar foto produk / placeholder */
+
+  /* Bentuk */
+  --radius-card: 16px; /* kartu, panel */
+  --radius-control: 12px; /* tombol, input */
+
+  --shadow-card: 0 1px 2px rgb(17 24 39 / 0.04), 0 4px 16px rgb(47 75 65 / 0.06);
+  --shadow-pop: 0 12px 32px rgb(47 75 65 / 0.16);
+
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Token semantik untuk dark mode (dipakai lewat var() atau kelas arbitrary) */
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --surface-2: #f9fafb;
+  --border: #e5e7eb;
+  --text: #111827;
+  --text-2: #4b5563;
+  --primary: #3b5d50;
+}
+.dark {
+  --bg: #0e1513;
+  --surface: #15201b;
+  --surface-2: #1c2a24;
+  --border: #2a3a33;
+  --text: #ecf1ee;
+  --text-2: #a7b6af;
+  --primary: #4f7a69;
+}
+
+@layer base {
+  body {
+    @apply bg-gray-100 font-sans text-gray-900 antialiased;
+  }
+  :focus-visible {
+    outline: 3px solid rgb(59 93 80 / 0.45);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

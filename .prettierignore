@@ -1,0 +1,6 @@
+dist/
+coverage/
+package-lock.json
+apps/api/uploads/
+README.md
+apps/web/src/components.d.ts

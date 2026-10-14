@@ -1,0 +1,15 @@
+# Konteks build Docker (Dockerfile): jangan ikutkan dependency, hasil build, rahasia, dan data lokal
+**/node_modules
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+!.env.production.example
+apps/api/uploads
+**/test-results
+**/playwright-report
+**/*.log
+.git
+.vscode

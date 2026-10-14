@@ -1,0 +1,23 @@
+{
+  "name": "ssb",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.18",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n web,api -c green,blue \"npm run dev -w apps/web\" \"npm run dev -w apps/api\"",
+    "lint": "prettier --check . && npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e -w apps/web",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.5",
+    "prettier": "^3.9.10"
+  }
+}
